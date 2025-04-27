@@ -6,3 +6,5 @@ I may use GLFM, a library similar to GLFW and made for creating a unified opengl
 libGDX is DEFINITELY on the table, it is a library for java which allows you to create games with openGL ES for both android and iOS
 
 A wrapper for both android and iOS around a main c++ application is still a possibility here... sadly...
+
+Maybe i can have a GenerateXCodeProjectFiles.bat and a GenerateAndroidStudioProjectFiles.bat idrkkk
