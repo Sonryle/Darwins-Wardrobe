@@ -1,28 +1,32 @@
 package com.sonryle.mynativecapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.view.View;
 
-import android.os.Bundle;
+import com.google.androidgamesdk.GameActivity;
 
-import com.sonryle.mynativecapplication.databinding.ActivityMainBinding;
-
-public class MainActivity extends AppCompatActivity {
-
-    // Load our C++ library
+public class MainActivity extends GameActivity {
     static {
         System.loadLibrary("mynativecapplication");
     }
 
-    private ActivityMainBinding binding;
-
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        // ().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
 
-        /*
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-         */
+        if (hasFocus) {
+            hideSystemUi();
+        }
+    }
+
+    private void hideSystemUi() {
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+        );
     }
 }
