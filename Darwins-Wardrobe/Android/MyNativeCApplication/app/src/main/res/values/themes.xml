@@ -1,0 +1,4 @@
+<resources>
+    <style name="Theme.JosephsTheme" parent="Theme.AppCompat.NoActionBar">
+    </style>
+</resources>
