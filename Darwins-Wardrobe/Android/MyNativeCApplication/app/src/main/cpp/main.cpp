@@ -1,12 +1,13 @@
 #include <jni.h>
 
-#include <android/log.h>
+#include <game-activity/GameActivity.cpp>
+#include <game-text-input/gametextinput.cpp>
 
 extern "C" {
-/*!
- * This the main entry point for a native activity
- */
+
+#include <game-activity/native_app_glue/android_native_app_glue.c>
+
 void android_main(struct android_app *pApp) {
-    __android_log_print(ANDROID_LOG_DEBUG, "AO", "Running....");
+    __android_log_print(ANDROID_LOG_DEBUG, "AO", "%s", "Heyy");
 }
 }
