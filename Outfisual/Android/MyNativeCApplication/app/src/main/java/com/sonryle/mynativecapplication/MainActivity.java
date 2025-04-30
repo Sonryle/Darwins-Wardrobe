@@ -5,17 +5,18 @@ import android.view.View;
 import com.google.androidgamesdk.GameActivity;
 
 public class MainActivity extends GameActivity {
-    static {
+    static
+    {
         System.loadLibrary("mynativecapplication");
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
+    public void onWindowFocusChanged(boolean hasFocus)
+    {
         super.onWindowFocusChanged(hasFocus);
 
-        if (hasFocus) {
+        if (hasFocus)
             hideSystemUi();
-        }
     }
 
     private void hideSystemUi() {

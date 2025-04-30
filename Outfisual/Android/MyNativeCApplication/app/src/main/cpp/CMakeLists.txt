@@ -14,5 +14,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         game-activity::game-activity
 
         # Include dependencies for communicating with android
+        EGL
+        GLESv3
         android
         log)
