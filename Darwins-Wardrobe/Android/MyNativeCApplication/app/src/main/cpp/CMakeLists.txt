@@ -10,8 +10,9 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 find_package(game-activity REQUIRED CONFIG)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
-        # Game activity (for app-glue)
+        # Include game-activity for native-app-glue
         game-activity::game-activity
 
+        # Include dependencies for communicating with android
         android
         log)
