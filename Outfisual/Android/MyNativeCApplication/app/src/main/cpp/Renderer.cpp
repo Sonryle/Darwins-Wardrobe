@@ -61,6 +61,7 @@ void Renderer::initRenderer(android_app* pApp)
     surface_ = surface;
     context_ = context;
 
+
     // setup any other gl related global states
     glClearColor(1.0f, 0.3f, 0.3f, 0.0f);
 }
