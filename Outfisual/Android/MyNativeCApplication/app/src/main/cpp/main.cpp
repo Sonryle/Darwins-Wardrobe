@@ -11,7 +11,8 @@ extern "C"
     #include "Renderer.h"
 
     // Callback function for android commands
-    void handle_cmd(android_app *pApp, int32_t cmd) {
+    void handle_cmd(android_app *pApp, int32_t cmd)
+    {
         switch (cmd)
         {
             case APP_CMD_INIT_WINDOW:
@@ -42,9 +43,7 @@ extern "C"
             switch (result)
             {
                 case ALOOPER_POLL_TIMEOUT:
-                    [[clang::fallthrough]];
                 case ALOOPER_POLL_WAKE:
-                    // No events occurred before the timeout or explicit wake. Stop checking for events.
                     done = true;
                     break;
                 case ALOOPER_EVENT_ERROR:
@@ -59,7 +58,9 @@ extern "C"
     }
 
     // main entry point
-    void android_main(struct android_app *pApp) {
+    void android_main(struct android_app *pApp)
+    {
+        // assign callback functions
         pApp->onAppCmd = handle_cmd;
 
         // game loop
