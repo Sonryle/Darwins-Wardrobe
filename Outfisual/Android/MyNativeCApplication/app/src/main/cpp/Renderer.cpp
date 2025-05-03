@@ -1,13 +1,35 @@
 #include "Renderer.h"
 
-#include <game-activity/native_app_glue/android_native_app_glue.h>
-#include <GLES3/gl3.h>
+#include "AndroidOut.h"
 
-void Renderer::initRenderer(android_app* pApp)
+#include <game-activity/native_app_glue/android_native_app_glue.h>
+
+void Renderer::render()
 {
-    // Choose your render attributes
+    // Bind shader program & VAO
+    glUseProgram(shader_program);
+    glBindVertexArray(VAO);
+
+    // Update shader uniforms
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    long long time_in_milli = ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+    glUniform1f(glGetUniformLocation(shader_program, "y_offset"), (float)sin((double)time_in_milli / 400) / 5);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    eglSwapBuffers(display_, surface_);
+}
+
+void Renderer::initRenderer()
+{
+    // Initialize EGL and get the default display associated with Android
+    display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    eglInitialize(display_, nullptr, nullptr);
+
+    // Configuration attributes for our EGL context
     constexpr EGLint attribs[] = {
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
             EGL_BLUE_SIZE, 8,
             EGL_GREEN_SIZE, 8,
@@ -16,58 +38,126 @@ void Renderer::initRenderer(android_app* pApp)
             EGL_NONE
     };
 
-    // The default display is probably what you want on Android
-    auto display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    eglInitialize(display, nullptr, nullptr);
+    // Determine how many EGL configs match the requested attributes
+    EGLint numberOfConfigs;
+    eglChooseConfig(display_, attribs, nullptr, 0, &numberOfConfigs);
+    if (numberOfConfigs == 0)
+        aout << "ERROR: No matching EGL config found. Check attribute values for correctness." << std::endl;
 
-    // figure out how many configs there are
-    EGLint numConfigs;
-    eglChooseConfig(display, attribs, nullptr, 0, &numConfigs);
-
-    // choose a config
-    auto supportedConfigs = new EGLConfig[numConfigs];
-    eglChooseConfig(display, attribs, supportedConfigs, numConfigs, &numConfigs);
+    // Retrieve all matching configs and select the first one
+    auto supportedConfigs = new EGLConfig[numberOfConfigs];
+    eglChooseConfig(display_, attribs, supportedConfigs, numberOfConfigs, &numberOfConfigs);
+    EGLConfig config = supportedConfigs[0]; // select the first config from the list
     delete[] supportedConfigs;
 
-    // Find a config we like.
-    // Could likely just grab the first if we don't care about anything else in the config.
-    // Otherwise hook in your own heuristic
-    EGLConfig config = nullptr;
-    for (int i = 0; i < numConfigs; ++i) {
-        EGLint r, g, b, d;
-        if (eglGetConfigAttrib(display, supportedConfigs[i], EGL_RED_SIZE, &r) &&
-            eglGetConfigAttrib(display, supportedConfigs[i], EGL_GREEN_SIZE, &g) &&
-            eglGetConfigAttrib(display, supportedConfigs[i], EGL_BLUE_SIZE, &b) &&
-            eglGetConfigAttrib(display, supportedConfigs[i], EGL_DEPTH_SIZE, &d)) {
-            if (r == 8 && g == 8 && b == 8 && d == 24) {
-                config = supportedConfigs[i];
-                break;
-            }
-        }
-    }
-
-    // create the proper window surface
+    // Create the proper window surface
     EGLint format;
-    eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-    EGLSurface surface = eglCreateWindowSurface(display, config, pApp->window, nullptr);
+    eglGetConfigAttrib(display_, config, EGL_NATIVE_VISUAL_ID, &format);
+    surface_ = eglCreateWindowSurface(display_, config, app_->window, nullptr);
 
-    // Create a GLES 3 context
-    EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-    EGLContext context = eglCreateContext(display, config, nullptr, contextAttribs);
-    eglMakeCurrent(display, surface, surface, context);
+    // Create an OpenGL ES 3 context
+    EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
+    context_ = eglCreateContext(display_, config, nullptr, contextAttribs);
+    eglMakeCurrent(display_, surface_, surface_, context_);
 
-    // Copy display and surface into renderer
-    display_ = display;
-    surface_ = surface;
-    context_ = context;
-
-
-    // setup any other gl related global states
-    glClearColor(1.0f, 0.3f, 0.3f, 0.0f);
+    // Set up any other OpenGL related global states
+    glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
 }
 
-void Renderer::render()
+void Renderer::initTriangle()
 {
-    glClear(GL_COLOR_BUFFER_BIT);
-    eglSwapBuffers(display_, surface_);
+    // Vertex data for triangle
+    float triangle_vertex[] = {
+            -0.7f, -0.25f, 0.0f,
+            0.7f, -0.25f, 0.0f,
+            0.0f,  0.25f, 0.0f
+    };
+
+    // Generate VAO
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    // Generate VBO
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertex), triangle_vertex, GL_STATIC_DRAW);
+
+    // Create Vertex Shader
+    const char* vs = "#version 300 es\n"
+                     "layout (location = 0) in vec3 aPos;\n"
+
+                     "uniform float y_offset;\n"
+
+                     "out vec4 vertex_colour;\n"
+
+                     "void main()\n"
+                     "{\n"
+                     "    gl_Position = vec4(aPos.x, aPos.y + y_offset, aPos.z, 1.0);\n"
+
+                     "    if (aPos.x ==  0.0f && aPos.y >=  0.1f)\n"
+                     "        vertex_colour = vec4(1.0f, 0.3f, 0.3f, 1.0f);\n"  // red
+                     "    if (aPos.x <= -0.1f && aPos.y <= -0.1f)\n"
+                     "        vertex_colour = vec4(0.3f, 1.0f, 0.3f, 1.0f);\n"  // green
+                     "    if (aPos.x >=  0.1f && aPos.y <= -0.1f)\n"
+                     "        vertex_colour = vec4(0.3f, 0.3f, 1.0f, 1.0f);\n"  // blue
+                     "}\n";
+    GLuint vertex_shader;
+    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, &vs, NULL);
+    glCompileShader(vertex_shader);
+
+    // Log any compilation errors
+    int  success;
+    char infoLog[512];
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
+        aout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // Create Fragment Shader
+    const char* fs = "#version 300 es\n"
+                     "precision mediump float;"
+                     "out vec4 FragColor;\n"
+
+                     "in vec4 vertex_colour;\n"
+
+                     "void main()\n"
+                     "{\n"
+                     "    FragColor = vertex_colour;\n"
+                     "}\n";
+    GLuint fragment_shader;
+    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, &fs, NULL);
+    glCompileShader(fragment_shader);
+
+    // Log any compilation errors
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        glGetShaderInfoLog(fragment_shader, 512, NULL, infoLog);
+        aout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // Create Shader Program
+    shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
+
+    // Log any compilation errors
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(shader_program, 512, NULL, infoLog);
+        aout << "ERROR::SHADER_PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    // Delete shader objects (they have been copied into the shader program and are no longer needed)
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    // Set up vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 }

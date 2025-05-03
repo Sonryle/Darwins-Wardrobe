@@ -1,29 +1,33 @@
 #include <jni.h>
 
+#include "Renderer.h"
+#include "AndroidOut.h"
+
+#include <game-activity/native_app_glue/android_native_app_glue.c>
 #include <game-activity/GameActivity.cpp>
 #include <game-text-input/gametextinput.cpp>
 
 extern "C"
 {
-    #include <game-activity/native_app_glue/android_native_app_glue.c>
-    #include <EGL/egl.h>
-    #include <GLES2/gl2.h>
-    #include "Renderer.h"
-
-    // Callback function for android commands
+    /*!
+     * Callback function for handling commands sent to this Android Application
+     * @param pApp the app where the commands are coming from
+     * @param cmd the command to handle
+     */
     void handle_cmd(android_app *pApp, int32_t cmd)
     {
         switch (cmd)
         {
             case APP_CMD_INIT_WINDOW:
+                // When window is initialised, initialise a new Renderer along with it
                 pApp->userData = new Renderer(pApp);
                 break;
             case APP_CMD_TERM_WINDOW:
-                if (pApp->userData)
+                // When window is terminated, delete the Renderer
+                if (pApp->userData != nullptr)
                 {
-                    auto *pRenderer = reinterpret_cast<Renderer *>(pApp->userData);
+                    delete reinterpret_cast<Renderer*>(pApp->userData);
                     pApp->userData = nullptr;
-                    delete pRenderer;
                 }
                 break;
             default:
@@ -31,7 +35,10 @@ extern "C"
         }
     }
 
-    // Process all pending events
+    /*!
+     * Processes all pending events from this Android Application
+     * @param pApp the app which contains pending events
+     */
     void process_events(struct android_app *pApp)
     {
         bool done = false;
@@ -47,6 +54,7 @@ extern "C"
                     done = true;
                     break;
                 case ALOOPER_EVENT_ERROR:
+                    aout << "ALooper_pollOnce returned an error" << std::endl;
                     break;
                 case ALOOPER_POLL_CALLBACK:
                     break;
@@ -57,19 +65,22 @@ extern "C"
         }
     }
 
-    // main entry point
+    /*!
+     * Main entry point of the C++ program for Android
+     * @param pApp The app that runs the main loop
+     */
     void android_main(struct android_app *pApp)
     {
-        // assign callback functions
+        // Assign callback functions
         pApp->onAppCmd = handle_cmd;
 
-        // game loop
+        // Game loop
         while (!pApp->destroyRequested)
         {
-            // process android events
+            // Process android events
             process_events(pApp);
 
-            // render scene
+            // Render scene
             if(pApp->userData != nullptr)
                 reinterpret_cast<Renderer*>(pApp->userData)->render();
         }

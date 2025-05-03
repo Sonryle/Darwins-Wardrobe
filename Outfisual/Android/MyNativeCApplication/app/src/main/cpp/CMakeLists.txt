@@ -5,6 +5,7 @@ project("mynativecapplication")
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
         main.cpp
+        AndroidOut.cpp
         Renderer.cpp)
 
 # Searches for game-activity package
