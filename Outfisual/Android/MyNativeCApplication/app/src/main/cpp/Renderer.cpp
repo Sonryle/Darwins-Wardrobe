@@ -13,8 +13,9 @@ void Renderer::render()
     // Update shader uniforms
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    long long time_in_milli = ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
-    glUniform1f(glGetUniformLocation(shader_program, "y_offset"), (float)sin((double)time_in_milli / 400) / 5);
+    float time_in_secs = (float)(tv.tv_sec - time_at_start) + ((float)tv.tv_usec / 1000000.0f);
+    aout << "time: " << time_in_secs << std::endl;
+    glUniform1f(glGetUniformLocation(shader_program, "time"), time_in_secs);
 
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -23,6 +24,11 @@ void Renderer::render()
 
 void Renderer::initRenderer()
 {
+    // TEMPORARY
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    time_at_start = tv.tv_sec;
+
     // Initialize EGL and get the default display associated with Android
     display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(display_, nullptr, nullptr);
@@ -86,20 +92,29 @@ void Renderer::initTriangle()
     const char* vs = "#version 300 es\n"
                      "layout (location = 0) in vec3 aPos;\n"
 
-                     "uniform float y_offset;\n"
+                     "uniform float time;\n"
 
                      "out vec4 vertex_colour;\n"
 
                      "void main()\n"
                      "{\n"
-                     "    gl_Position = vec4(aPos.x, aPos.y + y_offset, aPos.z, 1.0);\n"
+                     "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
 
                      "    if (aPos.x ==  0.0f && aPos.y >=  0.1f)\n"
+                     "    {\n"
                      "        vertex_colour = vec4(1.0f, 0.3f, 0.3f, 1.0f);\n"  // red
+                     "        gl_Position = vec4(cos(time), sin(time) / 2.35f, aPos.z, 1.0);\n"
+                     "    }\n"
                      "    if (aPos.x <= -0.1f && aPos.y <= -0.1f)\n"
+                     "    {\n"
                      "        vertex_colour = vec4(0.3f, 1.0f, 0.3f, 1.0f);\n"  // green
+                     "        gl_Position = vec4(cos(time+radians(60.0f)), sin(time+radians(120.0f)) / 2.35f, aPos.z, 1.0);\n"
+                     "    }\n"
                      "    if (aPos.x >=  0.1f && aPos.y <= -0.1f)\n"
+                     "    {\n"
                      "        vertex_colour = vec4(0.3f, 0.3f, 1.0f, 1.0f);\n"  // blue
+                     "        gl_Position = vec4(cos(time+radians(120.0f)), sin(time+radians(240.0f)) / 2.35f, aPos.z, 1.0);\n"
+                     "    }\n"
                      "}\n";
     GLuint vertex_shader;
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);

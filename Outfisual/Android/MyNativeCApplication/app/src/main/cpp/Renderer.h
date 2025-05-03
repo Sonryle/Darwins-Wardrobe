@@ -49,6 +49,8 @@ private:
     GLuint VAO;
     GLuint VBO;
     GLuint shader_program;
+
+    int time_at_start;
 };
 
 #endif
