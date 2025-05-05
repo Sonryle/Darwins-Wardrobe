@@ -9,4 +9,5 @@ A wrapper for both android and iOS around a main c++ application is still a poss
 
 Maybe i can have a GenerateXCodeProjectFiles.bat and a GenerateAndroidStudioProjectFiles.bat idrkkk
 
-I found [a guide to creating OpenGL ES apps on Android and iOS](https://www.google.ie/books/edition/Game_and_Graphics_Programming_for_iOS_an/WOEhPTXSKogC?hl=en&gbpv=1&printsec=frontcover) and I will be trying to follow it in the future
+I could also have one giant project which has all of the project files smooshed together with an Xcode project file and an android studio
+project file...
